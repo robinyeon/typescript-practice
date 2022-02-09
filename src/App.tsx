@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
 import Router from "./Router";
+import { ReactQueryDevtools } from "react-query/devtools";
 
 const GlobalStyle = createGlobalStyle`
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,800;1,600&family=Source+Sans+Pro:wght@300;400;700&display=swap');
@@ -51,7 +52,7 @@ table {
   border-collapse: collapse;
   border-spacing: 0;
 }
-*{
+* {
   box-sizing: border-box;
 }
 body {
@@ -61,6 +62,8 @@ body {
 }
 a {
   text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
 }
 `;
 
@@ -69,6 +72,7 @@ function App() {
     <>
       <Router />
       <GlobalStyle />
+      <ReactQueryDevtools initialIsOpen={true} />
     </>
   );
 }
