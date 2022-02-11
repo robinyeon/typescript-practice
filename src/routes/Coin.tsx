@@ -1,5 +1,5 @@
-import { stat } from "fs";
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet";
 import {
   Link,
   Route,
@@ -8,10 +8,11 @@ import {
   useParams,
   useRouteMatch,
 } from "react-router-dom";
+import { useQuery } from "react-query";
 import styled from "styled-components";
-import { isPropertySignature } from "typescript";
 import Chart from "./Chart";
 import Price from "./Price";
+import { fetchCoinInfo, fetchCoinTickers } from "../api";
 
 const Container = styled.div`
   padding: 0px 20px;
@@ -22,8 +23,11 @@ const Container = styled.div`
 const Header = styled.header`
   height: 10vh;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  a {
+    font-size: 40px;
+  }
 `;
 
 const Title = styled.h1`
@@ -146,14 +150,27 @@ interface PriceDate {
 }
 
 const Coin = () => {
-  const [loading, setLoading] = useState(true);
   const { coinId } = useParams<RouteParams>();
   const { state } = useLocation<RouteState>();
+  const priceMatch = useRouteMatch(`/:coinId/price`);
+  const chartMatch = useRouteMatch(`/:coinId/chart`);
+  const { isLoading: infoLoading, data: infoData } = useQuery<InfoData>(
+    ["info", coinId],
+    () => fetchCoinInfo(coinId)
+  );
+  const { isLoading: tickersLoading, data: tickersData } = useQuery<PriceDate>(
+    ["tickers", coinId],
+    () => fetchCoinTickers(coinId),
+    {
+      refetchInterval: 5000,
+    }
+  );
+  const loading = infoLoading || tickersLoading;
+
+  /*
+  const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<InfoData>();
   const [priceInfo, setPriceInfo] = useState<PriceDate>();
-  const priceMatch = useRouteMatch("/:coinId/price");
-  const chartMatch = useRouteMatch("/:coinId/chart");
-  console.log(priceMatch);
   useEffect(() => {
     (async () => {
       const infoData = await (
@@ -167,12 +184,21 @@ const Coin = () => {
       setLoading(false);
     })();
   }, [coinId]);
+  */
+
   return (
     <Container>
+      <Helmet>
+        <title>
+          {state?.name ? state.name : loading ? "LOADING" : infoData?.name}
+        </title>
+      </Helmet>
       <Header>
+        <Link to={"/"}>&larr;</Link>
         <Title>
-          {state?.name ? state.name : loading ? "LOADING" : info?.name}
+          {state?.name ? state.name : loading ? "LOADING" : infoData?.name}
         </Title>
+        <div></div>
       </Header>
       {loading ? (
         <Loader>🌀...LOADING...🌀</Loader>
@@ -181,26 +207,26 @@ const Coin = () => {
           <Overview>
             <OverviewItem>
               <span>Rank:</span>
-              <span>{info?.rank}</span>
+              <span>{infoData?.rank}</span>
             </OverviewItem>
             <OverviewItem>
               <span>Symbol:</span>
-              <span>${info?.symbol}</span>
+              <span>${infoData?.symbol}</span>
             </OverviewItem>
             <OverviewItem>
-              <span>Open Source:</span>
-              <span>{info?.open_source ? "Yes" : "No"}</span>
+              <span>Price:</span>
+              <span>${tickersData?.quotes.USD.price.toFixed(3)}</span>
             </OverviewItem>
           </Overview>
-          <Description>{info?.description}</Description>
+          <Description>{infoData?.description}</Description>
           <Overview>
             <OverviewItem>
               <span>Total Suply:</span>
-              <span>{priceInfo?.total_supply}</span>
+              <span>{tickersData?.total_supply}</span>
             </OverviewItem>
             <OverviewItem>
               <span>Max Supply:</span>
-              <span>{priceInfo?.max_supply}</span>
+              <span>{tickersData?.max_supply}</span>
             </OverviewItem>
           </Overview>
           <Tabs>
@@ -213,7 +239,7 @@ const Coin = () => {
           </Tabs>
           <Switch>
             <Route path={`/${coinId}/chart`}>
-              <Chart />
+              <Chart coinId={coinId} />
             </Route>
             <Route path={`/${coinId}/price`}>
               <Price />
